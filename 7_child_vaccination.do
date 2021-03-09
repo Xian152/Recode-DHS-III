@@ -80,8 +80,31 @@
 	gen c_polio3  = .  
 	replace c_polio3  = 1 if (h8 ==1 | h8 ==2 | h8 ==3)  
 	replace c_polio3  = 0 if h8 ==0  
-/*	
-	if inlist(name,"KyrgyzRepublic1997"){
+	
+	if inlist(name,"Gabon2000"){
+		drop c_dpt1 c_dpt2 c_dpt3  c_polio1 c_polio2 c_polio3
+		gen c_dpt1 =.
+		replace c_dpt1  = 1 if inrange(h3,1,3)|inrange(s457t1,1,3)
+		replace c_dpt1  = 0 if h3 == 0 & s457t1 == 0  
+		gen c_dpt2 =.
+		replace c_dpt2  = 1 if inrange(h5,1,3)|inrange(s457t2,1,3)
+		replace c_dpt2  = 0 if h5 == 0 & s457t2 == 0  
+		gen c_dpt3 =.
+		replace c_dpt3  = 1 if inrange(h7,1,3)|inrange(s457t3,1,3)
+		replace c_dpt3  = 0 if h7 == 0 & s457t3 == 0  
+
+		gen c_polio1  = .  
+		replace c_polio1  = 1 if inrange(h4,1,3) | inrange(s457t1,1,3)  
+		replace c_polio1  = 0 if h4 ==0 & s457t1==0
+		gen c_polio2  = .  
+		replace c_polio2  = 1 if inrange(h6,1,3) | inrange(s457t2,1,3)  
+		replace c_polio2  = 0 if h6 ==0  & s457t2==0
+		gen c_polio3  = .  
+		replace c_polio3  = 1 if inrange(h8,1,3) | inrange(s457t3,1,3)  
+		replace c_polio3  = 0 if h8 ==0  & s457t3==0		
+	}	
+	
+ 	if inlist(name,"Uzbekistan1996"){
 		drop c_bcg c_measles cpolio0 c_polio1 c_polio2 c_polio3 c_dpt1 c_dpt2 c_dpt3
 		
 		gen c_bcg  = . 
@@ -115,7 +138,7 @@
 		replace c_dpt3  = 1 if inrange(h7,1,3)|inrange(s4d3,1,3)
 		replace c_dpt3  = 0 if h7 == 0 & s4d3 == 0  
 	}
-*/
+
 *c_fullimm	child			Child fully vaccinated						
 	gen c_fullimm =.  										/*Note: polio0 is not part of allvacc- see DHS final report*/
 	replace c_fullimm =1 if (c_measles==1 & c_dpt1 ==1 & c_dpt2 ==1 & c_dpt3 ==1 & c_bcg ==1 & c_polio1 ==1 & c_polio2 ==1 & c_polio3 ==1)  
