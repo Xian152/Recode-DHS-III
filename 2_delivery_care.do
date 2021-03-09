@@ -22,10 +22,13 @@ order *,sequential  //make sure variables are in order.
 	 }
 	/* do consider as skilled if contain words in 
 	   the first group but don't contain any words in the second group */
-	   
+	if inlist(name,"Bangladesh1993"){
+		replace m3f=. // "trained birth att." is not skilled for Bangladesh1993
+	}	   
 	if inlist(name,"Tanzania1996"){
 		replace m3i=. // "village health wrk" not skilled for Tanzania1996
 	}
+
     egen sba_skill = rowtotal(m3a-m3m),mi
 
 	*c_hospdel: child born in hospital of births in last 2 years  
@@ -104,8 +107,4 @@ order *,sequential  //make sure variables are in order.
 	
 	*c_sba_eff2_q: Effective delivery care (baby delivered in facility, by skilled provider, mother and child stay in facility for min. 24h, breastfeeding initiated in first 1h after birth, skin2skin contact) among those with any SBA
 	gen c_sba_eff2_q = c_sba_eff2 if c_sba == 1
-	
-
-
-
 	
