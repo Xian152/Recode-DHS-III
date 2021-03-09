@@ -24,6 +24,18 @@ if inlist(name, "Brazil1996"){
     replace w_mammogram=. if wage<40|wage>49
 }
 
+if inlist(name, "DominicanRepublic1996"){
+    ren v012 wage	
+    replace w_papsmear=s336a
+    tab wage if w_papsmear!=. /*DHS sample is women aged 15-49*/
+    replace w_papsmear=. if wage<20|wage>49
+	
+	replace w_mammogram=1 if inlist(s336c,1,3)
+	replace w_mammogram=0 if inlist(s336c,2,4)
+    tab wage if w_mammogram!=. /*DHS sample is women aged 15-49*/
+    replace w_mammogram=. if wage<40|wage>49
+}
+
 if inlist(name, "Philippines1998"){
     ren v012 wage		
     replace w_papsmear=1 if s351==1 
@@ -32,6 +44,19 @@ if inlist(name, "Philippines1998"){
     tab wage if w_papsmear!=. /*DHS sample is women aged 15-49*/
     replace w_papsmear=. if wage<20|wage>49	
 }
+
+if inlist(name, "Nicaragua1998"){
+    ren v012 wage	
+    replace w_papsmear=s336a
+    tab wage if w_papsmear!=. /*DHS sample is women aged 15-49*/
+    replace w_papsmear=. if wage<20|wage>49
+	
+	replace w_mammogram=1 if inlist(s336c,1,3)
+	replace w_mammogram=0 if inlist(s336c,2,0)
+    tab wage if w_mammogram!=. /*DHS sample is women aged 15-49*/
+    replace w_mammogram=. if wage<40|wage>49
+}
+
 // They may be country specific in surveys.
 
 
@@ -47,7 +72,10 @@ if inlist(name, "Brazil1996"){
     replace w_papsmear_ref = "ever"
 	replace w_mammogram_ref = "ever"
 }
-
+if inlist(name, "DominicanRepublic1996","Nicaragua1998"){
+    replace w_papsmear_ref = "1yr"
+	replace w_mammogram_ref = "1yr"
+}
 if inlist(name, "Philippines1998"){
     replace w_papsmear_ref = "5yr"
 }
@@ -59,7 +87,7 @@ if inlist(name, "Philippines1998"){
 gen w_mammogram_age = "" //use string in the list: "20-49","20-59"; or missing as ""
 gen w_papsmear_age = ""  //use string in the list: "40-49","20-59"; or missing as ""
 
-if inlist(name, "Brazil1996"){
+if inlist(name, "Brazil1996", "DominicanRepublic1996","Nicaragua1998"){
     replace w_papsmear_age = "20-49"
     replace w_mammogram_age = "40-49"
 
