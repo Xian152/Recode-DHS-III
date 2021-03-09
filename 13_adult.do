@@ -41,10 +41,7 @@
 	
 *a_bp_meas				18y+ having their blood pressure measured by health professional in the last year  
     gen a_bp_meas = . 
-	
-*a_bp_meas_ref				18y+ having their blood pressure measured by health professional recall period, as close to last 1 year as possible. String variable. "ever" or "xx" as number of months
-    gen a_bp_meas_ref = "" 
-	
+		
 *a_diab_treat				18y+ being treated for raised blood glucose or diabetes 
     gen a_diab_treat = .
 
@@ -56,16 +53,16 @@
 		replace a_diab_treat=. if  sh257==.|sh257==8|sh257==9|sh259==9
     }		
 
-	* For Bolivia1994 India1998 Mali1995, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
+	* For Bolivia1994 India1998 Mali1995 Niger1998 Togo1998, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
 	if inlist(name,"India1998"){
 		drop hv001
 		gen hv001 = substr(hhid,4,6)
 		order hhid hvidx hv000 hv001 hv002
 		isid hv001 hv002 hvidx
 	}	
-	if inlist(name,"Bolivia1994","Mali1995"){
+	if inlist(name,"Bolivia1994","Mali1995","Niger1998","Togo1998"){
 		drop hv002
-		gen hv002 = substr(hhid,8,.)
+		gen hv002 = substr(hhid,8,5)
 		order hhid hvidx hv000 hv001 hv002
 		isid hv001 hv002 hvidx
 	}
