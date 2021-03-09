@@ -31,6 +31,9 @@ order *,sequential  //make sure variables are in order.
 		
 *c_diarrhea_pro	The treatment was provided by a formal provider (all public provider except other public, pharmacy, and private sector)
        /*please cross check as there might be case where the diarreha treatment provider is not in h12a-h12x*/
+	   if inlist(name,"Gabon2000"){
+			replace h32i =. if s468i==1 // recode h32i to . if the cnss facility is cnss pharmacy(s468i)
+	   }
 		if ~inlist(name, "Mozambique1997"){
 			order h12a-h12x,sequential
 			foreach var of varlist h12a-h12x {
@@ -79,20 +82,35 @@ order *,sequential  //make sure variables are in order.
 		if inlist(name, "Benin1996"){
 			replace c_diarrhea_mof = (s457 == 2) if !inlist(s457,.,8,9) & c_diarrhea == 1
 		}
+		if inlist(name, "BurkinaFaso1998"){
+			replace c_diarrhea_mof = (s466 == 1) if !inlist(s457,.,8,9) & c_diarrhea == 1
+		}
 		if inlist(name, "Philippines1998"){
 			replace c_diarrhea_mof = (s470 == 2) if !inlist(s470,.,8,9) & c_diarrhea == 1
 		}
- //recode h12z h15 h15a h15b h15c h15d h15e h15f h15g h15h  (8 9 =.)	
 *c_diarrhea_medfor Get formal medicine except (ors hmf home other_med, country specific). 
         egen medfor = rowtotal(h12z h15 h15a h15b h15c h15e h15g h15h ),mi
 		gen c_diarrhea_medfor = ( medfor > = 1 ) if c_diarrhea == 1 & medfor!=.
 		// formal medicine don't include "home remedy, herbal medicine and other"
-        replace c_diarrhea_medfor = . if (h12z == 8 | h15 == 8 | h15a == 8 | h15b == 8 | h15c == 8 | h15e == 8  | h15g == 8 | h15h == 8  )                                       
-
+		replace c_diarrhea_medfor = . if inlist(h12z,8,9) |inlist(h15,8,9)|inlist(h15a,8,9)|inlist(h15b,8,9)|inlist(h15c,8,9)|inlist(h15e,8,9)|inlist(h15g,8,9)|inlist(h15h,8,9)
+		if inlist(name,"Bangladesh1996"){
+			drop medfor c_diarrhea_medfor
+			egen medfor = rowtotal(h12z h15 h15a h15b h15c ),mi  // pedialite, frutiflex, other liquids
+			gen c_diarrhea_medfor = ( medfor > = 1 ) if c_diarrhea == 1 & medfor!=.
+			replace c_diarrhea_medfor = . if inlist(h12z,8,9) |inlist(h15,8,9)|inlist(h15a,8,9)|inlist(h15b,8,9)|inlist(h15c,8,9)			
+		}
+		
 *c_diarrhea_med	Child with diarrhea received any medicine other than ORS or hmf (country specific)
         egen med = rowtotal(h12z h15 h15a h15b h15c h15d h15e h15f h15g h15h),mi
         gen c_diarrhea_med = ( med > = 1 ) if c_diarrhea == 1 & med!=.
-        replace c_diarrhea_med = . if (h12z == 8 | h15 == 8 | h15a == 8 | h15b == 8 | h15c == 8 | h15d == 8 | h15e == 8 | h15f == 8 | h15g == 8 | h15h == 8 )
+        replace c_diarrhea_med = . if inlist(h12z,8,9) |inlist(h15,8,9)|inlist(h15a,8,9)|inlist(h15b,8,9)|inlist(h15c,8,9)|inlist(h15d,8,9)|inlist(h15e,8,9)|inlist(h15f,8,9)|inlist(h15g,8,9)|inlist(h15h,8,9)
+		
+		if inlist(name,"Bangladesh1996"){
+			drop med c_diarrhea_med
+			egen med = rowtotal(h12z h15 h15a h15b h15c),mi 
+			gen c_diarrhea_med = ( med > = 1 ) if c_diarrhea == 1 & med!=.
+			replace c_diarrhea_medfor = . if inlist(h12z,8,9) |inlist(h15,8,9)|inlist(h15a,8,9)|inlist(h15b,8,9)|inlist(h15c,8,9)
+		}			
 		
 *c_diarrheaact	Child with diarrhea seen by provider OR given any form of formal treatment
         gen c_diarrheaact = (c_diarrhea_pro==1 | c_diarrhea_medfor==1 | c_diarrhea_hmf==1 | c_treatdiarrhea==1) if c_diarrhea == 1
@@ -172,22 +190,18 @@ order *,sequential  //make sure variables are in order.
 			global h32 "h32a h32b h32c h32d h32e h32g h32h h32j h32l h32m h32n h32p h32q"
 	    }
 	    if inlist(name,"Senegal2010") {
-	        global h32 "h32a h32b h32c h32d h32e h32j h32l h32m h32n"
+	       global h32 "h32a h32b h32c h32d h32e h32j h32l h32m h32n"
 	    }
+		if inlist(name, "Mozambique1997"){
+	       global h32 "h32a h32b h32c h32f h32g h32h h32j h32l"
+	    }
+		
 	    foreach var in $h32 {
 			replace c_treatARI = 1 if c_treatARI == 0 & `var' == 1 
 			replace c_treatARI = . if `var' == .
 			
 			replace c_treatARI2 = 1 if c_treatARI2 == 0 & `var' == 1 
 			replace c_treatARI2 = . if `var' == .
-		}
-		
-		if inlist(name, "Mozambique1997"){
-			foreach k in h32a h32b h32c h32f h32g h32h h32j h32l{
-				replace c_treatARI2= 1 if c_ari2==1 & `k' ==1
-				replace c_treatARI2= . if c_ari2==1 & `k' ==. 		
-			}
-			replace c_treatARI = .
 		}
 			
 *c_fevertreat	Child with fever symptoms seen by formal provider
@@ -201,11 +215,28 @@ order *,sequential  //make sure variables are in order.
 
 		gen c_fevertreat = .
 
-		if inlist(name,"Bangladesh1993","Bangladesh1996","Bangladesh1999","Benin1996","Brazil1996","BurkinaFaso1998","CentralAfricanRepublic1994","India1998","Indonesia1994") & inlist(name,"Indonesia1997","Kazakhstan1999","Mali1995"){           	
+		if inlist(name,"Bangladesh1993","Bangladesh1996","Bangladesh1999","Benin1996","Brazil1996","BurkinaFaso1998","CentralAfricanRepublic1994","India1998","Indonesia1994") | inlist(name,"Indonesia1997","Kazakhstan1999","Mali1995","CotedIvoire1994","DominicanRepublic1996"){           	
 	   //if ~inlist(name,"Bolivia1994","Bolivia1998","Jordan1997","Kazakhstan1995","Kenya1998","KyrgyzRepublic1997","Nepal1996","Tanzania1996","Togo1998") &  ~inlist(name,"Cameroon1998","Chad1996","Madagascar1997","Mozambique1997","Niger1998","Nicaragua1998","Philippines1998","Peru1996","SouthAfrica1998") {
-		replace c_fevertreat = 0 if c_fever == 1
+			replace c_fevertreat = 0 if c_fever == 1
 			replace c_fevertreat = 1 if c_fevertreat == 0 & pro_ari >= 1
 			replace c_fevertreat = . if pro_ari == .
+	    }	
+		
+		if inlist(name,"Gabon2000"){
+	       global fever "s463ca s463cb s463cc s463cd s463ce s463cg s463ch s463cj s463ck s463cl"
+	    }
+		if inlist(name, "Ghana1998"){
+	       global fever "s449da s449db s449dc s449dd s449de s449dg s449di s449dj s449dk"
+	    }
+		if inlist(name, "Zambia1996"){
+	       global fever "sb449ba sb449bb sb449bc sb449bd sb449be sb449bg"
+	    }
+		if inlist(name,"Gabon2000","Ghana1998","Zambia1996") {
+	       replace c_fevertreat = 0 if c_fever == 1
+			foreach var in $fever {
+				replace c_fevertreat = 1 if c_fevertreat == 0 & `var' == 1
+				replace c_fevertreat = . if `var' == 9 
+			}
 	    }	
 		
 *c_illness	Child with any illness symptoms in last two weeks
