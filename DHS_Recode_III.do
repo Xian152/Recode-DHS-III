@@ -1,47 +1,3 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////
-*** DHS MONITORING: III
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-version 15.1
-clear all
-set matsize 3956, permanent
-set more off, permanent
-set maxvar 32767, permanent
-capture log close
-sca drop _all
-matrix drop _all
-macro drop _all
-
-******************************
-*** Define main root paths ***
-******************************
-// Bangladesh1993 Bangladesh1996 Bangladesh1999 Benin1996 Bolivia1994 Bolivia1998 Brazil1996 BurkinaFaso1998        
-// Colombia1995 Comoros1996 CotedIvoire1994 CotedIvoire1998 DominicanRepublic1996 Egypt1995 Gabon2000 Ghana1998 Guatemala1995 Guinea1999 Haiti1994              
-// India1998 Indonesia1994 Indonesia1997 Jordan1997 Kazakhstan1995 Kazakhstan1999  Kenya1998 KyrgyzRepublic1997 Madagascar1997 Mali1995  Mozambique1997              
-// Nepal1996 Nicaragua1998 Niger1998  Peru1996 Philippines1998 SouthAfrica1998 Tanzania1996 Togo1998 Turkey1998 Uganda1995                             
-// Uzbekistan1996 Vietnam1997 Zambia1996 Zimbabwe1994  Cameroon1998 CentralAfricanRepublic1994 Chad1996            
-//NOTE FOR WINDOWS USERS : use "/" instead of "\" in your paths
-
-global root "/Users/xianzhang/Dropbox/DHS"
-
-* Define path for data sources
-global SOURCE "/Users/xianzhang/Desktop/Recode III"
-
-* Define path for output data
-global OUT "${root}/STATA/DATA/SC/FINAL"
-
-* Define path for INTERMEDIATE
-global INTER "${root}/STATA/DATA/SC/INTER"
-
-* Define path for do-files
-global DO "${root}/STATA/DO/SC/DHS/Recode III"
-
-* Define the country names (in globals) in by Recode
-do "${DO}/0_GLOBAL.do"
-global mc "/Users/xianzhang/Dropbox"
-
-//Bolivia1994 India1998 Mali1995 Niger1998  Togo1998
-foreach name in BurkinaFaso1998  Kazakhstan1995 KyrgyzRepublic1997 Madagascar1997 SouthAfrica1998 Turkey1998{	
 
 tempfile birth ind men hm hiv hh wi zsc iso 
 
@@ -150,7 +106,7 @@ use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta", clear
 	
 	*generate b16 as place holder
 	//b16 Child's line number in household is missing in Recode III
-	gen b16 = .  //s219 as alternative in Bangladesh1999, please check this by survey.
+	cap gen b16 = .  //s219 as alternative in Bangladesh1999, please check this by survey.
 	
 	if inlist(name,"Bangladesh1999"){
 	replace b16 = s219
@@ -245,23 +201,8 @@ save `hm',replace
 ************************************
 *****domains using hh level data****
 ************************************
-use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
-    rename (hv001 hv002 hvidx) (v001 v002 v003)
-
-    merge 1:m v001 v002 v003 using "${SOURCE}/DHS-`name'/DHS-`name'birth.dta"
-    rename (v001 v002 v003) (hv001 hv002 hvidx) 
-    drop _merge
-
-    do "${DO}/15_household"
-
-keep hhid hv001 hv002 hv003 hh_* 
-save `hh',replace
-
-************************************
-*****domains using wi data**********
-************************************
 gen name = "`name'"
-if !inlist(name,"India1998","Bolivia1994","Mali1995"){
+if !inlist(name,"India1998","Bolivia1994","Mali1995","Niger1998","Togo1998"){
 use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
     rename (hv001 hv002 hvidx) (v001 v002 v003)
 
@@ -270,12 +211,15 @@ use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
     drop _merge
 	gen name = "`name'"
 }
+
 * For Bolivia1994 India1998 Mali1995, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
 if inlist(name,"India1998"){
 	tempfile birthspec
 	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
 	drop v001
 	gen v001 = substr(caseid,4,6)
+	isid v001 v002 v003 bidx
+	order caseid v001 v002 v003 bidx
 	save `birthspec',replace
 	
 	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
@@ -288,19 +232,20 @@ if inlist(name,"India1998"){
     merge 1:m v001 v002 v003 using `birthspec'
     rename (v001 v002 v003) (hv001 hv002 hvidx) 
     drop _merge
+	gen name = "`name'"
 }
 
-if inlist(name,"Bolivia1994","Mali1995"){
+	if inlist(name,"Bolivia1994","Mali1995","Niger1998","Togo1998"){
 	tempfile birthspec
 	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
 	drop v002
-	gen v002 = substr(caseid,8,6)
+	gen v002 = substr(caseid,8,5)
 	isid v001 v002 v003 bidx
 	save `birthspec',replace
 	
 	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
 	drop hv002
-	gen hv002 = substr(hhid,8,.)
+	gen hv002 = substr(hhid,8,5)
 	isid hv001 hv002 hvidx
 	order hhid hv000 hv001 hv002
     rename (hv001 hv002 hvidx) (v001 v002 v003)
@@ -309,20 +254,27 @@ if inlist(name,"Bolivia1994","Mali1995"){
     rename (v001 v002 v003) (hv001 hv002 hvidx) 
     drop _merge
 }
-
+************************************
+*****domains using wi data**********
+************************************
 capture confirm file "${SOURCE}/DHS-`name'/DHS-`name'wi.dta"
     if _rc == 0 {
+	preserve
     use "${SOURCE}/DHS-`name'/DHS-`name'wi.dta", clear
     ren whhid hhid 
     ren wlthindf hv271
     ren wlthind5 hv270
     sort hhid
     save `wi', replace 
+	restore
 	
 	*merge with 
-	merge 1:1 hhid using `hh',nogen
-	save `hh',replace
+	merge m:1 hhid using `wi',nogen
 	}
+    do "${DO}/15_household"
+
+keep hhid hv001 hv002 hv003 hh_* 
+save `hh',replace
 
 ************************************
 *****merge to microdata*************
@@ -333,11 +285,14 @@ use "${SOURCE}/external/iso", clear
 keep country iso2c iso3c
 replace country = "KyrgyzRepublic" if country == "Kyrgyzstan"
 replace country = "CentralAfricanRepublic" if country == "Central African Republic"
+replace country = "CotedIvoire" if country == "CÃ´te d'Ivoire"
 replace country = "BurkinaFaso" if country == "Burkina Faso"
 replace country = "SouthAfrica" if country == "South Africa"
 replace country = "DominicanRepublic" if country == "Dominican Republic"
 replace country = "Moldova" if country == "Moldova, Republic of"
 replace country = "Tanzania" if country == "Tanzania, United Republic of"
+
+
 
 save `iso'
 
@@ -394,6 +349,13 @@ drop c_placeholder
 *** Quality Control: Validate with DHS official data
 gen surveyid = iso2c+year+"DHS"
 gen name = "`name'"
+* to match with HEFPI_DHS.dta surveyid (differ in year)
+	if inlist(name,"Colombia2010") {
+		replace surveyid = "CO2009DHS"
+	}
+	if inlist(name,"Nicaragua1998") {
+		replace surveyid = "NI1997DHS"
+	}
     
 preserve
 	do "${DO}/Quality_control"
