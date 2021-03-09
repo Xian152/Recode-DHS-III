@@ -17,12 +17,7 @@
 		replace wconc_partnerships=1 if v853>=1 & !inlist(v853,98,.) // v853 no. other than husband had sex
 		replace wconc_partnerships=0 if v853==0
 	}
-	/*
-	if inlist(name,"Benin1996","BurkinaFaso1998"){
-		replace wconc_partnerships=1 if v853>=1 & !inlist(v853,98,.)  // v853 no. other than husband had sex
-		replace wconc_partnerships=0 if v853==0
-	}
-	*/
+
 	if inlist(name,"Brazil1996"){
 		replace wconc_partnerships=1 if s513>1 & s513 !=. // s513 persons had sex last 12 months
 		replace wconc_partnerships=0 if v853==0			// v853 no. other than husband had sex
@@ -101,16 +96,16 @@
     gen w_metany_fp_q = (w_CPR == 1) if w_need_fp == 1 
 	 
 
-	* For Bolivia1994 India1998 Mali1995, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
+	* For Bolivia1994 India1998 Mali1995 Niger1998 Togo1998, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
 	if inlist(name,"India1998"){
 		drop v001
 		gen v001 = substr(caseid,4,6)
 		order caseid v000 v001 v002 v003
 		isid v001 v002 v003 
 	}	
-	if inlist(name,"Bolivia1994","Mali1995"){
+	if inlist(name,"Bolivia1994","Mali1995","Niger1998","Togo1998"){
 		drop v002
-		gen v002 = substr(caseid,8,6)
+		gen v002 = substr(caseid,8,5)
 		order caseid v000 v001 v002 v003
 		isid v001 v002 v003 
 	}	
