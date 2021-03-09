@@ -29,6 +29,7 @@ order *,sequential
 	gen c_anc_ear_q = c_anc_ear if c_anc_any == 1
 	
 	*anc_skill: Categories as skilled: doctor, nurse, midwife, auxiliary nurse/midwife...
+	if !inlist(name,"Gabon2000"){
 	foreach var of varlist m2a-m2m {
 	local lab: variable label `var' 
     replace `var' = . if ///
@@ -36,7 +37,12 @@ order *,sequential
 	  (!regexm("`lab'","doctor|nurse|Nurse|Assistante Accoucheuse|family welf.visitor|midwife|mifwife|aide soignante|assistante accoucheuse|hosp/hc brth attend|(sanitario)|(ma/sacmo)|rural medical aide|cs health profession|gynaecologist|medex|MCH AIDE|mch worker|nursing aide|clinical officer|(feldsher/other)|(Technical Nurse)|mch aide|auxiliary birth attendant|physician assistant|professional|ferdsher|feldshare|skilled|community health care provider|birth attendant|hospital/health center worker|hew|auxiliary|icds|feldsher|mch|vhw|village health team|health personnel|gynecolog(ist|y)|internist|pediatrician|family welfare visitor|medical assistant|health assistant|ma/sacmo|health officer|ob-gy") ///
 	|regexm("`lab'","na^|-na|na -|NA -|- na|- NA|-NA| na!|trad.birth|vhw|traditional birth attendant|untrained|health assistant|medical assistant/icp|obgyn|anganwadi/icds worker|unquallified|unqualified|empirical midwife|trad.| other|vhw")) &  !(regexm("`lab'","doctor|health prof.")&regexm("`lab'","other")) | regexm("`lab'","untrained")		
 	replace `var' = . if !inlist(`var',0,1)
+		}
 	 }
+	if inlist(name,"Gabon2000"){ // matron is skilled for c_anc, which is different for most other data files 
+		recode m2g m2i m2k (1 0 8 9 =.)
+		recode m2a m2b m2d m2e m2f (8 9 =.)
+	}
 	/* do consider as skilled if contain words in 
 	   the first group but don't contain any words in the second group */
     egen anc_skill = rowtotal(m2a-m2m),mi	
@@ -44,6 +50,12 @@ order *,sequential
 	*c_anc_eff: Effective ANC (4+ antenatal care visits, any skilled provider, blood pressure, blood and urine samples) of births in last 2 years
 	if inlist(name,"Bangladesh1996"){
 		ren (s411a s411b) (m42c m42d)
+	}
+	if inlist(name,"Gabon2000"){
+		ren (s412c s412d s412e s416) (m42c m42d m42e m45)
+	}
+	if inlist(name,"Ghana1998"){
+		ren (s408bc s408bd s408be s412a) (m42c m42d m42e m45)
 	}
 	if inlist(name,"Kazakhstan1999"){
 		ren (s412c s412d s412e s416) (m42c m42d m42e m45)
@@ -64,6 +76,7 @@ order *,sequential
 		ren (s409dc s409dd s409de s409fa) (m42c m42e m42d  m45)
 	}	
 
+	*c_anc_eff: Effective ANC (4+ antenatal care visits, any skilled provider, blood pressure, blood and urine samples) of births in last 2 years
 	capture confirm variable m42e m42c m42d
 	if _rc==0 {
 		egen anc_blood = rowtotal(m42c m42d m42e) if m2n == 0 
@@ -163,7 +176,25 @@ order *,sequential
 		gen c_anc_ir_q = c_anc_ir if c_anc_any == 1 
 
 	}
-	
+	if inlist(name,"DominicanRepublic1996"){
+		drop  anc_blood  c_anc_eff c_anc_eff_q c_anc_bp* c_anc_bs* c_anc_ur*  c_anc_ir*
+		
+		egen anc_blood = rowtotal(s411e2 s411a s411c) 
+		g c_anc_eff = (c_anc == 1 & anc_skill>0 & anc_blood == 3) 
+		replace c_anc_eff = . if c_anc ==. |  anc_skill==. |((inlist(s411e2,.,8,9)|inlist(s411a,.,8,9)|inlist(s411c,.,8,9)))
+        g c_anc_eff_q = c_anc_eff if c_anc_any == 1
+		
+		gen c_anc_bp = s411e2 if !inlist(s411e2,8,9)
+		gen c_anc_ur = s411a if !inlist(s411a,8,9)
+		gen c_anc_bs = s411c if !inlist(s411c,8,9)
+		gen c_anc_ir = s411e4 if !inlist(s411e4,8,9)
+		
+		gen c_anc_bp_q = c_anc_bp if c_anc_any == 1 	
+		gen c_anc_ur_q = c_anc_ur if c_anc_any == 1 
+		gen c_anc_bs_q = c_anc_bs if c_anc_any == 1 
+		gen c_anc_ir_q = c_anc_ir if c_anc_any == 1 
+
+	}
 	*c_anc_tet: pregnant women vaccinated against tetanus for last birth in last 2 years
 	gen c_anc_tet = .   //no pregnant women tetanus injection information.  
 /* 	    gen tet2lastp = 0                                                                                   //follow the definition by report. might be country specific. 
@@ -219,16 +250,16 @@ order *,sequential
 	gen w_sampleweight = v005/10e6
 
 	
-	* For Bolivia1994 India1998 Mali1995, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
+	* For Bolivia1994 India1998 Mali1995 Niger1998 Togo1998, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
 	if inlist(name,"India1998"){
 		drop v001
 		gen v001 = substr(caseid,4,6)
 		order caseid v000 v001 v002 v003
 		isid v001 v002 v003 bidx
 	}	
-	if inlist(name,"Bolivia1994","Mali1995"){
+	if inlist(name,"Bolivia1994","Mali1995","Niger1998","Togo1998"){
 		drop v002
-		gen v002 = substr(caseid,8,6)
+		gen v002 = substr(caseid,8,5)
 		order caseid v000 v001 v002 v003
 		isid v001 v002 v003 bidx
 	}	
