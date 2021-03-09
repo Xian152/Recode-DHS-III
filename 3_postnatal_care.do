@@ -1,111 +1,66 @@
 
-************************
-*** Sexual health*******
-************************ 	
+******************************
+***Postnatal Care************* 
+****************************** 
+//missing complete information to generate the indicators on pnc for mother and child in Recode IV surveys. 
 
-	gen w_married=(v502==1)
-	replace w_married=. if v502==.
+    *c_pnc_skill: m52,m72 by var label text. (m52 is added in Recode VI.
+    gen c_pnc_skill = .
+/* 	gen m52_skill = 0 if m51a != .   //using m51a (Time after the delivery for the respondent to receive a checkup) as filter question. However no info on who checked (unless at home m68)
+	gen m72_skill = 0 if !inlist(m70,0,1)   //Newborn check up info missing in Recode IV. 
 	
-	*w_condom_conc: 18-49y woman who had more than one sexual partner in the last 12 months and used a condom during last intercourse
-     ** Concurrent partnerships 
-	gen wconc_partnerships=. //v766b Number of men including the husband is missing in Recode III
-	if inlist(name,"Kazakhstan1999"){
-		replace wconc_partnerships=1 if s525>1 & s525!=. //number of sexual partners in the last 12 months
-		replace wconc_partnerships=0 if s525==1|s521==0
+	foreach var of varlist m52  m72 {
+    decode `var', gen(`var'_lab)
+	replace `var'_lab = lower(`var'_lab )
+	replace  `var'_skill= 1 if ///
+	(regexm(`var'_lab,"doctor|nurse|midwife|aide soignante|assistante accoucheuse|clinical officer|mch aide|trained|auxiliary birth attendant|physician assistant|professional|ferdsher|skilled|community health care provider|birth attendant|hospital/health center worker|hew|auxiliary|icds|feldsher|mch|vhw|village health team|health personnel|gynecolog(ist|y)|obstetrician|internist|pediatrician|family welfare visitor|medical assistant|health assistant") ///
+	&!regexm(`var'_lab,"na^|-na|traditional birth attendant|untrained|unquallified|empirical midwife|other")) 
+	replace `var'_skill = . if mi(`var') | `var' == 99
 	}
-	if inlist(name,"Kenya1998"){
-		replace wconc_partnerships=1 if v853>=1 & !inlist(v853,98,.) // v853 no. other than husband had sex
-		replace wconc_partnerships=0 if v853==0
+	/* consider as skilled if contain words in 
+	   the first group but don't contain any words in the second group */
+*/	
+	
+	*c_pnc_any : mother OR child receive PNC in first six weeks by skilled health worker  //to be decided whether to keep? because m52_skill is missing. 
+    gen c_pnc_any = .
+	if inlist(name,"Ghana1998"){
+		drop c_pnc_skill
+		egen c_pnc_skill = rowtotal(s417da s417db s417dc s417dd),mi
+		replace c_pnc_any = 0 if s417b!=.
+		replace c_pnc_any = 1 if s417b == 1 & s417c <= 306 & c_pnc_skill >= 1 
+		replace c_pnc_any = . if s417c >= 998 | c_pnc_skill==.
+		replace c_pnc_any = 0 if s417b == 0
 	}
-
-	if inlist(name,"Brazil1996"){
-		replace wconc_partnerships=1 if s513>1 & s513 !=. // s513 persons had sex last 12 months
-		replace wconc_partnerships=0 if v853==0			// v853 no. other than husband had sex
+/*  gen c_pnc_any = 0 if !mi(m70) & !mi(m51a)  
+    replace c_pnc_any = 1 if (m71 <= 306 & m72_skill == 1 ) | (m51a <= 306 /* & m52_skill == 1 */)
+    replace c_pnc_any = . if inlist(m71,199,299,399,998)| inlist(m51a,998)| m72_skill == . /* | m52_skill == . */
+ */
+	
+	*c_pnc_eff: mother AND child in first 24h by skilled health worker		
+    gen c_pnc_eff = .
+/* 	replace c_pnc_eff = 0 if m51a != . | /* m52_skill != . | */ m71 != . | m72_skill != .   
+    replace c_pnc_eff = 1 if ((inrange(m51a,100,124) | m51a == 201 ) /* & m52_skill == 1 */) & ((inrange(m71,100,124) | m71 == 201) & m72_skill == 1 )
+    replace c_pnc_eff = . if inlist(m51a,199,299,399,998) | /* m52_skill == . | */ inlist(m71,199,299,399,998) | m72_skill == .              
+ */	
+	*c_pnc_eff_q: mother AND child in first 24h by skilled health worker among those with any PNC
+	gen c_pnc_eff_q = c_pnc_eff
+	replace c_pnc_eff_q = . if c_pnc_any == 0
+	replace c_pnc_eff_q = . if c_pnc_any == . | c_pnc_eff == .
+	
+	*c_pnc_eff2: mother AND child in first 24h by skilled health worker and cord check, temperature check and breastfeeding counselling within first two days	
+	gen c_pnc_eff2 = . 
+	
+	capture confirm variable m78a m78b m78d                            //m78* only available for Recode VII
+	if _rc == 0 {
+	egen check = rowtotal(m78a m78b m78d),mi
+	replace c_pnc_eff2 = c_pnc_eff
+	replace c_pnc_eff2 = 0 if check != 3
+	replace c_pnc_eff2 = . if c_pnc_eff == . 
 	}
-	if inlist(name,"Tanzania1996"){
-		replace wconc_partnerships=1 if s518>=1 & !inlist(s518,98,.)  // s518 no. other than husband had sex
-		replace wconc_partnerships=0 if s518==0
-	}
-
-/* 	replace v766b=. if v766b==98|v766b==99
-	gen wconc_partnerships=1 if v766b>1&v766b!=.
-	replace wconc_partnerships=0 if v766b==0|v766b==1 */
-
-     ** Condom usage
-	rename v761 wcondom
-		replace wcondom=. if wcondom==8|wcondom==9
-/* 		replace wcondom=. if v766b==0 | v766b==. */
-	if inlist(name,"Kazakhstan1999"){
-		replace wcondom=. if inlist(s521,.,9,8)
-	}		
-	gen w_condom_conc=1 if wcondom==1&wconc_partnerships==1
-    replace w_condom_conc=0 if wcondom==0&wconc_partnerships==1
 	
-    /*18-49y woman who had more than one sexual partner in the last 12 months and used a condom during last intercourse*/
-    cap confirm variable w_condom_conc
-    if _rc==0 {
-    replace w_condom_conc=. if hm_age_yrs<18
-    }
+	*c_pnc_eff2_q: mother AND child in first 24h weeks by skilled health worker and cord check, temperature check and breastfeeding counselling within first two days among those with any PNC
+	gen c_pnc_eff2_q = c_pnc_eff2
+	replace c_pnc_eff2_q = . if c_pnc_any == 0
+	replace c_pnc_eff2_q = . if c_pnc_any == . | c_pnc_eff2 == .					  
 
-	*w_CPR: Use of modern contraceptive methods of women age 15(!)-49 married or living in union
-	gen w_CPR=(v313==3)
-    replace w_CPR=. if v313==.
-    replace w_CPR=. if w_married!=1
-	
-	*w_unmet_fp 15-49y married or in union with unmet need for family planning (1/0)
-	*w_need_fp 15-49y married or in union with need for family planning (1/0)
-	*w_metany_fp 15-49y married or in union with need for family planning using modern contraceptives (1/0)
-	*w_metmod_fp 15-49y married or in union with need for family planning using any contraceptives (1/0)
-	
-	 tempfile temp1 temp2 temp3
-	 
-	 preserve
-     do "${DO}/Add unmetFP_DHS.do"
-	 gen w_metany_fp = 1 if inlist(unmet,3,4)
-     replace w_metany_fp = 0 if inlist(unmet,1,2) 
-     keep caseid w_unmet_fp w_metany_fp
-	 
-     save `temp1'
-	 restore
-	 
-	 preserve
-	 do "${DO}/Add unmetFPmod_DHS.do"
-     gen w_metmod_fp = 1 if inlist(unmet,3,4)
-     replace w_metmod_fp = 0 if inlist(unmet,1,2)
-	 
-	 gen w_need_fp = 1 if w_metmod_fp!=.
-     replace w_need_fp = 0 if inlist(unmet,7,9)
-	 
-     keep w_metmod_fp  w_need_fp w_metmod_fp caseid
-	 save `temp2'
-	 
-	 merge 1:1 caseid using `temp1'
-	 drop _merge
-	 save `temp3'
-	 restore 
-	 
-	 merge 1:m caseid using `temp3'
-     drop if _m == 1
-    
-	replace w_metany_fp = . if w_married!=1
-	replace w_metmod_fp = . if w_married!=1
-	replace w_need_fp = . if w_married!=1
-	replace w_unmet_fp = . if w_married!=1
-	
-    *w_metany_fp_q 15-49y married or in union using modern contraceptives among those with need for family planning who use any contraceptives (1/0)
-    gen w_metany_fp_q = (w_CPR == 1) if w_need_fp == 1 
-	 
 
-	* For Bolivia1994 India1998 Mali1995 Niger1998 Togo1998, the v001/v002 lost 2-3 digits, fix this issue in main.do, 1.do,4.do,12.do & 13.do
-	if inlist(name,"India1998"){
-		drop v001
-		gen v001 = substr(caseid,4,6)
-		order caseid v000 v001 v002 v003
-		isid v001 v002 v003 
-	}	
-	if inlist(name,"Bolivia1994","Mali1995","Niger1998","Togo1998"){
-		drop v002
-		gen v002 = substr(caseid,8,5)
-		order caseid v000 v001 v002 v003
-		isid v001 v002 v003 
-	}	
