@@ -1,12 +1,18 @@
 /* This file is to identify the gap between the microdataset,
  DHS, and HEFPI. */
-/*
+/* Note: run for DHS.dta and replace, to allign with HEFPI 
+use "${SOURCE}/external/DHS.dta", clear
 replace surveyid="BD1993DHS" if surveyid =="BD1994DHS"
- replace surveyid="BD1996DHS" if surveyid =="BD1997DHS"
+replace surveyid="BD1996DHS" if surveyid =="BD1997DHS"
 replace surveyid="BD1999DHS" if surveyid =="BD2000DHS"
- replace surveyid="KG1997DHS" if surveyid=="KY1997DHS"
-  replace surveyid="BF1998DHS" if surveyid=="BF1999DHS"
+replace surveyid="KG1997DHS" if surveyid=="KY1997DHS"
+replace surveyid="BF1998DHS" if surveyid=="BF1999DHS"
 replace surveyid="MG1997DHS" if surveyid=="MD1997DHS"
+replace surveyid="DO1996DHS" if surveyid=="DR1996DHS"
+replace surveyid="IN1998DHS" if surveyid=="IA1999DHS"
+replace surveyid="NE1998DHS" if surveyid=="NI1998DHS"
+replace surveyid="NI1997DHS" if surveyid=="NC1998DHS"
+save,replace
 */
 
 /* Note: More indicators are overlapped in non-Afganistan survey: 
@@ -51,21 +57,21 @@ preserve
 	c_polio1 c_polio2 c_polio3{
     replace `var' = . if !inrange(hm_age_mon,12,23)
     }
-/*	
-	if ~inlist(name,"Azerbaijan2006","Albania2008","Bolivia2008","DominicanRepublic2007","Guyana2009") & ~inlist(name,"Peru2004","Peru2007","Peru2009","Peru2010","Peru2011","Peru2012") {
+	
+	if ~inlist(name,"CotedIvoire1994"){
 		foreach var of var c_bcg c_dpt1 c_dpt2 c_dpt3 c_fullimm c_measles ///
 		c_polio1 c_polio2 c_polio3{
 		replace `var' = . if !inrange(hm_age_mon,12,23)
 		}
 	}
 	
-	if inlist(name,"Azerbaijan2006","Albania2008","Bolivia2008","DominicanRepublic2007","Guyana2009") | inlist(name,"Peru2004","Peru2007","Peru2009","Peru2010","Peru2011","Peru2012"){
+	if inlist(name,"CotedIvoire1994"){
 		foreach var of var c_bcg c_dpt1 c_dpt2 c_dpt3 c_fullimm c_measles ///
 		c_polio1 c_polio2 c_polio3{
-		replace `var' = . if !inrange(hm_age_mon,18,29)
+		replace `var' = . if !inrange(hm_age_mon,0,12)
 		}
 	}
-*/
+
 ***for variables generated from 8_child_illness	
 	foreach var of var c_ari2 c_diarrhea 	c_diarrhea_hmf	c_diarrhea_medfor	c_diarrhea_mof	c_diarrhea_pro	c_diarrheaact ///
 	c_diarrheaact_q	c_fever	c_fevertreat	c_illness	c_illtreat	c_sevdiarrhea	c_sevdiarrheatreat ///
@@ -91,7 +97,10 @@ c_ari2 c_diarrhea 	c_diarrhea_hmf	c_diarrhea_mof c_diarrhea_pro	c_fever	c_treatd
 *********************************
 *****Calculate the indicators****
 *********************************
-*ssc install _gwtmean   //use this package to calculate the weighted mean. 
+capture which _gwtmean  //use this package to calculate the weighted mean. 
+	if _rc!=0{
+		ssc install _gwtmean,replace  
+	}
 
 gen ispreferred = "1"   //there are dif. definition for same indicator in DHS data. 
 
