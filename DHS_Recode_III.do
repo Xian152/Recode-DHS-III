@@ -1,4 +1,42 @@
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+*** DHS MONITORING: III
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//version 15.1
+clear all
+set matsize 3956, permanent
+set more off, permanent
+set maxvar 32767, permanent
+capture log close
+sca drop _all
+matrix drop _all
+macro drop _all
+
+******************************
+*** Define main root paths ***
+******************************
+//NOTE FOR WINDOWS USERS : use "/" instead of "\" in your paths
+
+global root "/Users/xianzhang/Dropbox/DHS"
+
+* Define path for data sources
+global SOURCE "/Volumes/alan/DHS/RAW DATA/Recode III"
+
+* Define path for output data
+global OUT "${root}/STATA/DATA/SC/FINAL"
+
+* Define path for INTERMEDIATE
+global INTER "${root}/STATA/DATA/SC/INTER"
+
+* Define path for do-files
+global DO "${root}/STATA/DO/SC/DHS/Recode III"
+
+* Define the country names (in globals) in by Recode
+do "${DO}/0_GLOBAL.do"
+
+foreach  name in $DHScountries_Recode_III  {	
+
 tempfile birth ind men hm hiv hh wi zsc iso 
 
 ************************************
@@ -179,6 +217,7 @@ capture confirm file "${INTER}/zsc_hm.dta"
 gen c_placeholder = 1
 keep hv001 hv002 hvidx  ///
 a_* hm_* ln c_*  
+cap gen hm_shstruct =999
 save `hm'
 
 capture confirm file "${SOURCE}/DHS-`name'/DHS-`name'hiv.dta"
@@ -190,11 +229,12 @@ capture confirm file "${SOURCE}/DHS-`name'/DHS-`name'hiv.dta"
     gen a_hiv = . 
     gen a_hiv_sampleweight = .
     }  
-keep a_hiv* hv001 hv002 hvidx
+cap gen hm_shstruct =999
+keep a_hiv* hv001 hv002 hm_shstruct hvidx
 save `hiv'
 
 use `hm',clear
-merge 1:1 hv001 hv002 hvidx using `hiv'
+merge 1:1 hv001 hv002 hm_shstruct hvidx using `hiv'
 drop _merge
 save `hm',replace
  
@@ -202,13 +242,14 @@ save `hm',replace
 *****domains using hh level data****
 ************************************
 gen name = "`name'"
-if !inlist(name,"India1998","Bolivia1994","Mali1995","Niger1998","Togo1998"){
+if !inlist(name,"BurkinaFaso1998","India1998","Bolivia1994","Mali1995","Niger1998","Cameroon1998","Haiti1994","Togo1998"){
 use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
     rename (hv001 hv002 hvidx) (v001 v002 v003)
 
     merge 1:m v001 v002 v003 using "${SOURCE}/DHS-`name'/DHS-`name'birth.dta"
     rename (v001 v002 v003) (hv001 hv002 hvidx) 
     drop _merge
+	cap gen hm_shstruct =999 
 	gen name = "`name'"
 }
 
@@ -216,41 +257,121 @@ use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
 if inlist(name,"India1998"){
 	tempfile birthspec
 	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
-	drop v001
-	gen v001 = substr(caseid,4,6)
-	isid v001 v002 v003 bidx
-	order caseid v001 v002 v003 bidx
+	gen hm_shstruct = v024
+	isid hm_shstruct v001 v002 v003 bidx
+	order  caseid bidx v000 hm_shstruct v001 v002 v003
 	save `birthspec',replace
 	
 	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
-	drop hv001
-	gen hv001 = substr(hhid,4,6)
-	isid hv001 hv002 hvidx
-	order hhid hv000 hv001 hv002
+	gen hm_shstruct = hv024
+	isid hm_shstruct hv001 hv002 hvidx
+	order  hhid hvidx hv000 hm_shstruct hv001 hv002 
     rename (hv001 hv002 hvidx) (v001 v002 v003)
 
-    merge 1:m v001 v002 v003 using `birthspec'
+    merge 1:m v001 v002 hm_shstruct v003 using `birthspec'
     rename (v001 v002 v003) (hv001 hv002 hvidx) 
     drop _merge
 	gen name = "`name'"
 }
-
-	if inlist(name,"Bolivia1994","Mali1995","Niger1998","Togo1998"){
+if inlist(name,"BurkinaFaso1998"){
 	tempfile birthspec
 	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
 	drop v002
-	gen v002 = substr(caseid,8,5)
-	isid v001 v002 v003 bidx
+	gen v002 = substr(caseid,11,2)
+	gen hm_shstruct = substr(caseid,8,4)
+	order caseid bidx v000 v001 hm_shstruct v002 v003
+	destring hm_shstruct v002,replace
+	isid v001 hm_shstruct v002 v003 bidx
 	save `birthspec',replace
 	
 	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
-	drop hv002
-	gen hv002 = substr(hhid,8,5)
-	isid hv001 hv002 hvidx
-	order hhid hv000 hv001 hv002
+	gen hm_shstruct = shconces
+	replace hv002=shnumber
+	isid  hv001 hm_shstruct hv002 hvidx
+	order  hhid hvidx hv000 hv001 hm_shstruct hv002 
     rename (hv001 hv002 hvidx) (v001 v002 v003)
 
-    merge 1:m v001 v002 v003 using `birthspec'
+    merge 1:m v001 v002 hm_shstruct v003 using `birthspec'
+    rename (v001 v002 v003) (hv001 hv002 hvidx) 
+    drop _merge
+	gen name = "`name'"
+}
+if inlist(name,"Bolivia1994"){
+	tempfile birthspec
+	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
+	gen hm_shstruct = substr(caseid,11,3)
+	order caseid bidx v000 v001 v002 hm_shstruct  v003
+	destring hm_shstruct v002,replace
+	isid v001  v002 hm_shstruct v003 bidx
+	save `birthspec',replace
+	
+	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
+	gen hm_shstruct = shsec
+	isid  hv001 hv002 hm_shstruct  hvidx
+	order  hhid hvidx hv000 hv001 hv002  hm_shstruct 
+    rename (hv001 hv002 hvidx) (v001 v002 v003)
+
+    merge 1:m v001 v002 hm_shstruct v003 using `birthspec'
+    rename (v001 v002 v003) (hv001 hv002 hvidx) 
+    drop _merge
+	gen name = "`name'"
+}
+if inlist(name,"Mali1995","Niger1998"){
+	tempfile birthspec
+	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
+	gen hm_shstruct = substr(caseid,11,3)
+	order caseid bidx v000 v001 v002 hm_shstruct  v003
+	destring hm_shstruct v002,replace
+	isid v001  v002 hm_shstruct v003 bidx
+	save `birthspec',replace
+	
+	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
+	gen hm_shstruct = shnumber
+	isid  hv001 hv002 hm_shstruct  hvidx
+	order  hhid hvidx hv000 hv001 hv002  hm_shstruct
+    rename (hv001 hv002 hvidx) (v001 v002 v003)
+
+    merge 1:m v001 v002 hm_shstruct v003 using `birthspec'
+    rename (v001 v002 v003) (hv001 hv002 hvidx) 
+    drop _merge
+	gen name = "`name'"
+}
+if inlist(name,"Cameroon1998","Haiti1994"){
+	tempfile birthspec
+	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
+	gen hm_shstruct = substr(caseid,8,3)
+	order caseid bidx v000 v001 hm_shstruct v002  v003
+	destring hm_shstruct v002,replace
+	isid v001 hm_shstruct v002 v003 bidx
+	save `birthspec',replace
+	
+	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
+	gen hm_shstruct = shstruct
+	isid  hv001  hm_shstruct  hv002 hvidx
+	order  hhid hvidx hv000 hv001 hm_shstruct hv002  
+    rename (hv001 hv002 hvidx) (v001 v002 v003)
+
+    merge 1:m v001 v002 hm_shstruct v003 using `birthspec'
+    rename (v001 v002 v003) (hv001 hv002 hvidx) 
+    drop _merge
+	gen name = "`name'"
+}
+if inlist(name,"Togo1998"){
+	tempfile birthspec
+	use "${SOURCE}/DHS-`name'/DHS-`name'birth.dta",clear
+	gen hm_shstruct = substr(caseid,8,3)
+	order caseid bidx v000 v001 hm_shstruct v002  v003
+	destring hm_shstruct v002,replace
+	isid v001 hm_shstruct v002 v003 bidx
+	save `birthspec',replace
+	
+	use "${SOURCE}/DHS-`name'/DHS-`name'hm.dta", clear
+	gen hm_shstruct = shconces
+	isid  hv001  hm_shstruct  hv002 hvidx
+	order  hhid hvidx hv000 hv001 hm_shstruct hv002  
+    rename (hv001 hv002 hvidx) (v001 v002 v003)
+
+    merge 1:m v001 v002 hm_shstruct v003 using `birthspec'
     rename (v001 v002 v003) (hv001 hv002 hvidx) 
     drop _merge
 }
@@ -272,8 +393,9 @@ capture confirm file "${SOURCE}/DHS-`name'/DHS-`name'wi.dta"
 	merge m:1 hhid using `wi',nogen
 	}
     do "${DO}/15_household"
-
-keep hhid hv001 hv002 hv003 hh_* 
+	
+cap gen hm_shstruct = 999	
+keep hhid hv001 hm_shstruct hv002 hv003 hh_* 
 save `hh',replace
 
 ************************************
@@ -304,22 +426,22 @@ gen miss_b16 = 1 if r(percent) == 1
 if miss_b16 == 1 {
    //when b16 is missing, the hm.dta can not be merged with birth.dta, the final microdata would be women and child only.
   
-    merge m:1 hv001 hv002 hvidx using `ind',nogen update //merge child in birth.dta to mother in ind.dta
-    merge m:m hv001 hv002       using `hh',nogen update 
+    merge m:1 hv001 hm_shstruct hv002 hvidx using `ind',nogen update //merge child in birth.dta to mother in ind.dta
+    merge m:m hv001 hm_shstruct hv002       using `hh',nogen update 
 }
 
 if miss_b16 != 1 {
 
   use `hm',clear //when b16 is not missing, the hm.dta can be merged with birth.dta, the final microdata has all household member info
 
-    merge 1:m hv001 hv002 hvidx using `birth',update              //missing update is zero, non missing conflict for all matched.(hvidx different) 
+    merge 1:m hv001 hm_shstruct hv002 hvidx using `birth',update              //missing update is zero, non missing conflict for all matched.(hvidx different) 
     replace hm_headrel = 99 if _merge == 2
 	label define hm_headrel_lab 99 "dead/no longer in the household"
 	label values hm_headrel hm_headrel_lab
 	replace hm_live = 0 if _merge == 2 | inlist(hm_headrel,.,12,98)
 	drop _merge
-    merge m:m hv001 hv002 hvidx using `ind',nogen update
-	merge m:m hv001 hv002       using `hh',nogen update 
+    merge m:m hv001 hm_shstruct hv002 hvidx using `ind',nogen update
+	merge m:m hv001 hm_shstruct hv002       using `hh',nogen update 
    
     tab hh_urban,mi  //check whether all hh member + dead child + child lives outside hh assinged hh info
 }
@@ -423,7 +545,4 @@ preserve
 	
 save "${OUT}/DHS-`name'.dta", replace   
 }
-
-
-
 
